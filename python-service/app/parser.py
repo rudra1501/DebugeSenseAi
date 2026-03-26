@@ -11,6 +11,26 @@ def parse_error(data):
     file_name = None
     line_number = None
 
+    def clean_error_message(msg):
+        if msg is None:
+            return None
+        cleaned = str(msg).strip()
+        # Remove common JS stack location trailers:
+        #   "... at app.js:45"
+        #   "... @ app.js:45:10"
+        cleaned = re.sub(r"\s+(?:at|@)\s+.+$", "", cleaned, flags=re.IGNORECASE)
+        # Remove trailing parenthesized locations like:
+        #   "... (app.js:45:10)"
+        cleaned = re.sub(
+            r"\s*\(\s*[^)]*:\d+(?::\d+)?\s*\)\s*$",
+            "",
+            cleaned,
+            flags=re.IGNORECASE,
+        )
+        # Remove trailing "app.js:45" if it ends the message.
+        cleaned = re.sub(r"\s+[^()\s]+:\d+(?::\d+)?\s*$", "", cleaned)
+        return cleaned.strip() or None
+
     # Common JS/Python/network style error identifiers.
     type_match = re.search(
         r"\b([A-Za-z_]\w*(?:Error|Exception)|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EADDRINUSE)\b",
@@ -25,7 +45,7 @@ def parse_error(data):
             re.IGNORECASE,
         )
         if type_message_match:
-            error_message = type_message_match.group(1).strip()
+            error_message = clean_error_message(type_message_match.group(1))
 
     # JavaScript stack line style: at fn (/path/file.js:10:5)
     js_file_line_match = re.search(
@@ -69,6 +89,8 @@ def parse_error(data):
             line_number = int(line_number)
         except (TypeError, ValueError):
             line_number = None
+
+    error_message = clean_error_message(error_message) if error_message is not None else None
 
     parsed ={
         "type": error_type,

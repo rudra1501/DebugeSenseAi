@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 from parser import parse_error
+from context_builder import build_context
 
 app = FastAPI()
 
@@ -13,13 +14,15 @@ class ParseRequest(BaseModel):
 
 @app.post("/parse")
 def parse(payload: ParseRequest):
-    parsed_result = parse_error(
-        {
-            "stackTrace": payload.stackTrace,
-            "logs": payload.logs,
-        }
-    )
-    return parsed_result
+    raw_input = {
+        "stackTrace": payload.stackTrace,
+        "logs": payload.logs,
+    }
+
+    parsed = parse_error(raw_input)
+    context = build_context(parsed, raw_input)
+
+    return {"parsed": parsed, "context": context}
 
 
 if __name__ == "__main__":
