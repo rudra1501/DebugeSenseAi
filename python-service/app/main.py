@@ -10,6 +10,7 @@ app = FastAPI()
 class ParseRequest(BaseModel):
     stackTrace: str
     logs: str
+    code: str | None = None
 
 
 @app.post("/parse")
@@ -17,6 +18,7 @@ def parse(payload: ParseRequest):
     raw_input = {
         "stackTrace": payload.stackTrace,
         "logs": payload.logs,
+        "code": payload.code,
     }
 
     parsed = parse_error(raw_input)
