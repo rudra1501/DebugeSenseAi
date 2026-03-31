@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 from parser import parse_error
 from context_builder import build_context
+from similarity import find_similar_issue
 
 app = FastAPI()
 
@@ -11,6 +12,11 @@ class ParseRequest(BaseModel):
     stackTrace: str
     logs: str
     code: str | None = None
+
+
+class SimilarRequest(BaseModel):
+    current: str
+    past: list[str] = []
 
 
 @app.post("/parse")
@@ -25,6 +31,15 @@ def parse(payload: ParseRequest):
     context = build_context(parsed, raw_input)
 
     return {"parsed": parsed, "context": context}
+
+
+@app.post("/similar")
+def similar(payload: SimilarRequest):
+    result = find_similar_issue(payload.current, payload.past)
+    return {
+        "mostSimilar": result.get("text"),
+        "score": result.get("score", 0.0),
+    }
 
 
 if __name__ == "__main__":

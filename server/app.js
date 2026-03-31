@@ -34,6 +34,64 @@ app.post("/analyze", async (req, res) => {
       code: req.body?.code ?? context?.code ?? null,
     };
 
+    // Fetch last 10 past sessions and run similarity search using Python.
+    let similarIssues = { mostSimilar: null, score: 0 };
+    try {
+      const colsRes = await pool.query(
+        `SELECT column_name
+         FROM information_schema.columns
+         WHERE table_name = 'sessions'
+           AND table_schema = 'public'`
+      );
+      const existingCols = new Set((colsRes.rows || []).map((r) => r.column_name));
+
+      // Prefer timestamp-ish columns; fallback to "id" if present.
+      const candidates = [
+        "created_at",
+        "createdAt",
+        "created_on",
+        "createdOn",
+        "timestamp",
+        "createdTime",
+        "id",
+      ];
+      const orderCol = candidates.find((c) => existingCols.has(c)) ?? null;
+
+      const orderBySql = orderCol
+        ? `ORDER BY "${orderCol}" DESC`
+        : "";
+
+      const pastRes = await pool.query(
+        `SELECT context->>'errorSummary' AS error_summary
+         FROM sessions
+         WHERE context IS NOT NULL
+         AND context->>'errorSummary' IS NOT NULL
+         AND context->>'errorSummary' <> ''
+         ${orderBySql}
+         LIMIT 10`
+      );
+
+      const pastSummaries = (pastRes.rows || [])
+        .map((r) => r.error_summary)
+        .filter((s) => typeof s === "string" && s.trim().length > 0);
+
+      const currentSummary = context?.errorSummary ?? "";
+
+      const similarResponse = await axios.post("http://127.0.0.1:8000/similar", {
+        current: currentSummary,
+        past: pastSummaries,
+      });
+
+      similarIssues = {
+        mostSimilar: similarResponse.data?.mostSimilar ?? null,
+        score: typeof similarResponse.data?.score === "number" ? similarResponse.data.score : 0,
+      };
+    } catch (similarErr) {
+      // Similarity shouldn't fail the main flow; keep response usable.
+      console.log("Similarity step failed:", similarErr.message);
+    }
+
+    // Persist current session after similarity check.
     await pool.query(
       `INSERT INTO sessions ("input", "parsed", "context", "aiAnalysis")
        VALUES ($1::jsonb, $2::jsonb, $3::jsonb, $4::jsonb)`,
@@ -49,6 +107,7 @@ app.post("/analyze", async (req, res) => {
       parsed,
       context,
       aiAnalysis,
+      similarIssues,
     });
   } catch (error) {
     res.status(500).json({
