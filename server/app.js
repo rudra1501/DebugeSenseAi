@@ -6,6 +6,7 @@ const { analyzeWithAI } = require("./src/services/ai");
 const { Pool } = require("pg");
 const { calculateConfidence } = require("./src/utils/confidence");
 const { generateDiff } = require("./src/utils/codeDiff");
+const { detectSeverity } = require("./src/utils/severity");
 
 const app = express();
 const PORT = 5000;
@@ -20,6 +21,8 @@ app.post("/analyze", async (req, res) => {
   try {
     const parseResponse = await axios.post("http://127.0.0.1:8000/parse", req.body);
     const { parsed, context } = parseResponse.data || {};
+
+    const severity = detectSeverity(context?.category ?? "UNKNOWN", context?.logs ?? null);
 
     const aiAnalysis = await analyzeWithAI(context);
 
@@ -93,6 +96,16 @@ app.post("/analyze", async (req, res) => {
 
     const finalConfidence = calculateConfidence(aiAnalysis?.confidence ?? 0, similarIssues?.score ?? 0, context?.category ?? "UNKNOWN");
 
+    const analysis = {
+      rootCause: aiAnalysis?.rootCause ?? "",
+      fixSuggestion: aiAnalysis?.fixSuggestion ?? "",
+      improvedCode: aiAnalysis?.improvedCode ?? "",
+      confidence: finalConfidence,
+      severity: severity,
+      reasoningSteps: Array.isArray(aiAnalysis?.reasoningSteps) ? aiAnalysis.reasoningSteps : [],
+      codeDiff: Array.isArray(codeDiff) ? codeDiff : [],
+    }
+
     await pool.query(
       `INSERT INTO sessions ("input", "parsed", "context", "aiAnalysis")
        VALUES ($1::jsonb, $2::jsonb, $3::jsonb, $4::jsonb)`,
@@ -100,17 +113,15 @@ app.post("/analyze", async (req, res) => {
         JSON.stringify(input),
         JSON.stringify(parsed ?? null),
         JSON.stringify(context ?? null),
-        JSON.stringify(aiAnalysis ?? null),
+        JSON.stringify(analysis ?? null),
       ]
     );
 
     res.json({
       parsed,
       context,
-      aiAnalysis,
+      analysis,
       similarIssues,
-      finalConfidence,
-      codeDiff,
     });
   } catch (error) {
     res.status(500).json({
