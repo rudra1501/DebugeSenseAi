@@ -9,7 +9,6 @@ def build_context(parsed_data, raw_input):
     if raw_input is None:
         raw_input = {}
 
-    # Support either object-style or dict-style inputs.
     if not isinstance(raw_input, dict):
         raw_input = {}
 
@@ -21,7 +20,6 @@ def build_context(parsed_data, raw_input):
 
     logs = raw.get("logs") or raw_input.get("logs")
 
-    # Try a few common keys for code snippet.
     code = (
         parsed_data.get("code")
         if isinstance(parsed_data, dict)

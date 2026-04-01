@@ -9,7 +9,6 @@ def text_to_vector(text):
     basically counting how many times each word appears.
     """
     cleaned = str(text or "").lower()
-    # Keep alphanumerics and underscores; everything else becomes a delimiter.
     words = re.findall(r"[a-z0-9_]+", cleaned)
     return dict(Counter(words))
 
@@ -21,7 +20,6 @@ def cosine_similarity(vec1, vec2):
     if not vec1 or not vec2:
         return 0.0
 
-    # Dot product over intersection of keys.
     dot = 0.0
     for key, v1 in vec1.items():
         v2 = vec2.get(key)

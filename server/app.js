@@ -28,14 +28,12 @@ app.post("/analyze", async (req, res) => {
       );
     }
 
-    // Store session for later inspection/auditing.
     const input = {
       stackTrace: req.body?.stackTrace ?? null,
       logs: req.body?.logs ?? null,
       code: req.body?.code ?? context?.code ?? null,
     };
 
-    // Fetch last 10 past sessions and run similarity search using Python.
     let similarIssues = { mostSimilar: null, score: 0 };
     try {
       const colsRes = await pool.query(
@@ -46,7 +44,6 @@ app.post("/analyze", async (req, res) => {
       );
       const existingCols = new Set((colsRes.rows || []).map((r) => r.column_name));
 
-      // Prefer timestamp-ish columns; fallback to "id" if present.
       const candidates = [
         "created_at",
         "createdAt",
@@ -88,13 +85,11 @@ app.post("/analyze", async (req, res) => {
         score: typeof similarResponse.data?.score === "number" ? similarResponse.data.score : 0,
       };
     } catch (similarErr) {
-      // Similarity shouldn't fail the main flow; keep response usable.
       console.log("Similarity step failed:", similarErr.message);
     }
 
     const finalConfidence = calculateConfidence(aiAnalysis?.confidence ?? 0, similarIssues?.score ?? 0, context?.category ?? "UNKNOWN");
 
-    // Persist current session after similarity check.
     await pool.query(
       `INSERT INTO sessions ("input", "parsed", "context", "aiAnalysis")
        VALUES ($1::jsonb, $2::jsonb, $3::jsonb, $4::jsonb)`,

@@ -45,10 +45,6 @@ FORMAT:
 "confidence": number
 }`;
 
-  console.log("🔵 Calling Gemini API...");
-  console.log("API KEY EXISTS:", !!apiKey);
-  console.log("PROMPT:", PROMPT);
-
   let response;
 
   try {
@@ -60,13 +56,12 @@ FORMAT:
       ],
     });
   } catch (err) {
-    console.error("🔴 Gemini API ERROR:");
+    console.error("Gemini API ERROR:");
     console.error("Status:", err.response?.status);
     console.error("Data:", err.response?.data);
     console.error("Message:", err.message);
-    throw err; // rethrow so your main API still catches it
+    throw err;
   }
-  console.log("🟢 Gemini RAW response:", response.data);
 
   const rawText =
     response.data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
