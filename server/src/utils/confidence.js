@@ -1,4 +1,4 @@
-function calculateConfidence(aiConfidence, similarityScore, category) {
+function calculateConfidence(aiConfidence, similarityScore, category, logs, code) {
   const ai = Number(aiConfidence) || 0;
   const sim = Number(similarityScore) || 0;
 
@@ -14,10 +14,24 @@ function calculateConfidence(aiConfidence, similarityScore, category) {
     categoryWeight = -5;
   }
 
-  const total = base + similarityBoost + categoryWeight;
-  const capped = Math.min(total, 100);
+  let total = base + similarityBoost + categoryWeight;
 
-  return Math.round(capped);
+  if (!logs || String(logs).trim() === "") {
+    total -= 15;
+  }
+  
+  if (!code || String(code).trim() === "") {
+    total -= 10;
+  }
+  
+  if (category === "UNKNOWN") {
+    total -= 20;
+  }
+
+  total = Math.min(total, 90);
+  total = Math.max(total, 0);
+
+  return Math.round(total);
 }
 
 module.exports = {

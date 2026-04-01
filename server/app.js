@@ -94,7 +94,13 @@ app.post("/analyze", async (req, res) => {
       console.log("Similarity step failed:", similarErr.message);
     }
 
-    const finalConfidence = calculateConfidence(aiAnalysis?.confidence ?? 0, similarIssues?.score ?? 0, context?.category ?? "UNKNOWN");
+    const finalConfidence = calculateConfidence(
+      aiAnalysis?.confidence ?? 0, 
+      similarIssues?.score ?? 0, 
+      context?.category ?? "UNKNOWN",
+      context?.logs ?? "",
+      context?.code ?? "",
+    );
 
     const analysis = {
       rootCause: aiAnalysis?.rootCause ?? "",
