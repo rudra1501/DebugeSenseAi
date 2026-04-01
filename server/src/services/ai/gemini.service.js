@@ -27,6 +27,7 @@ TASK:
 2. Suggest fix
 3. Provide improved code
 4. Give confidence score (0-100)
+5. Explain reasoning steps clearly
 
 IMPORTANT:
 
@@ -42,7 +43,11 @@ FORMAT:
 "rootCause": "...",
 "fixSuggestion": "...",
 "improvedCode": "...",
-"confidence": number
+"confidence": number,
+"reasoningSteps": [
+  "step 1...",
+  "step 2..."
+]
 }`;
 
   let response;
