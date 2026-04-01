@@ -5,6 +5,7 @@ const axios = require("axios");
 const { analyzeWithAI } = require("./src/services/ai");
 const { Pool } = require("pg");
 const { calculateConfidence } = require("./src/utils/confidence");
+const { generateDiff } = require("./src/utils/codeDiff");
 
 const app = express();
 const PORT = 5000;
@@ -21,6 +22,8 @@ app.post("/analyze", async (req, res) => {
     const { parsed, context } = parseResponse.data || {};
 
     const aiAnalysis = await analyzeWithAI(context);
+
+    const codeDiff = generateDiff(context?.code ?? null, aiAnalysis?.improvedCode ?? null);
 
     if (!pool) {
       throw new Error(
@@ -107,6 +110,7 @@ app.post("/analyze", async (req, res) => {
       aiAnalysis,
       similarIssues,
       finalConfidence,
+      codeDiff,
     });
   } catch (error) {
     res.status(500).json({
