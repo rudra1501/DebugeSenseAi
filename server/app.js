@@ -4,6 +4,7 @@ const cors = require("cors");
 const axios = require("axios");
 const { analyzeWithAI } = require("./src/services/ai");
 const { Pool } = require("pg");
+const { calculateConfidence } = require("./src/utils/confidence");
 
 const app = express();
 const PORT = 5000;
@@ -91,6 +92,8 @@ app.post("/analyze", async (req, res) => {
       console.log("Similarity step failed:", similarErr.message);
     }
 
+    const finalConfidence = calculateConfidence(aiAnalysis?.confidence ?? 0, similarIssues?.score ?? 0, context?.category ?? "UNKNOWN");
+
     // Persist current session after similarity check.
     await pool.query(
       `INSERT INTO sessions ("input", "parsed", "context", "aiAnalysis")
@@ -108,6 +111,7 @@ app.post("/analyze", async (req, res) => {
       context,
       aiAnalysis,
       similarIssues,
+      finalConfidence,
     });
   } catch (error) {
     res.status(500).json({

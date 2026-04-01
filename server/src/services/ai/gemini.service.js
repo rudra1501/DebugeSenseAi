@@ -32,6 +32,10 @@ IMPORTANT:
 
 * Return ONLY valid JSON
 * No extra text
+* If unsure, say low confidence
+* Do not assume missing information
+* Base answer only on given input
+* If logs/code are empty, mention limitation
 
 FORMAT:
 {
