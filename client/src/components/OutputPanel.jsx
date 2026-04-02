@@ -29,6 +29,14 @@ export default function OutputPanel({ result }) {
       <h2 className="text-xl font-semibold mb-4">Output</h2>
 
       <div className="space-y-4">
+        {/* reused flag */}
+        {result?.reused && (
+          <div className="mb-4">
+            <span className="px-3 py-1 text-sm rounded bg-blue-600/20 text-blue-400 border border-blue-500/30">
+              ⚡ Reused previous solution
+            </span>
+          </div>
+        )}
         {/* root cause */}
         <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">

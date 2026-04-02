@@ -11,26 +11,29 @@ const { detectSeverity } = require("./src/utils/severity");
 const app = express();
 const PORT = 5000;
 
-const dbUrl = process.env.DATABASE_URL || process.env.PG_CONNECTION_STRING;
+const dbUrl = process.env.DATABASE_URL;
 const pool = dbUrl ? new Pool({ connectionString: dbUrl }) : null;
+const SIMILARITY_THRESHOLD = 0.9;
 
 app.use(cors());
 app.use(express.json());
 
 app.post("/analyze", async (req, res) => {
   try {
-    const parseResponse = await axios.post("http://127.0.0.1:8000/parse", req.body);
+    const parseResponse = await axios.post(
+      "http://127.0.0.1:8000/parse",
+      req.body,
+    );
     const { parsed, context } = parseResponse.data || {};
 
-    const severity = detectSeverity(context?.category ?? "UNKNOWN", context?.logs ?? null);
-
-    const aiAnalysis = await analyzeWithAI(context);
-
-    const codeDiff = generateDiff(context?.code ?? null, aiAnalysis?.improvedCode ?? null);
+    const severity = detectSeverity(
+      context?.category ?? "UNKNOWN",
+      context?.logs ?? null,
+    );
 
     if (!pool) {
       throw new Error(
-        "Missing PostgreSQL connection string. Set DATABASE_URL (or PG_CONNECTION_STRING) in environment."
+        "Missing PostgreSQL connection string. Set DATABASE_URL in environment.",
       );
     }
 
@@ -40,71 +43,90 @@ app.post("/analyze", async (req, res) => {
       code: req.body?.code ?? context?.code ?? null,
     };
 
+    let pastRows = [];
+    try {
+      const pastRes = await pool.query(
+        `SELECT context->>'errorSummary' AS error_summary, "aiAnalysis"
+        FROM sessions
+        WHERE context IS NOT NULL
+        AND context->>'errorSummary' IS NOT NULL
+        AND context->>'errorSummary' <> ''
+        ORDER BY id DESC
+        LIMIT 10`,
+      );
+
+      pastRows = pastRes.rows || [];
+    } catch (err) {
+      console.log("DB fetch error:", err.message);
+    }
+
+    const pastSummaries = pastRows
+      .map((r) => r.error_summary)
+      .filter((s) => typeof s === "string" && s.trim().length > 0);
+
+    const currentSummary = context?.errorSummary ?? "";
+
     let similarIssues = {
       mostSimilar: null,
       score: 0,
       matchType: "Weak match",
     };
+
     try {
-      const colsRes = await pool.query(
-        `SELECT column_name
-         FROM information_schema.columns
-         WHERE table_name = 'sessions'
-           AND table_schema = 'public'`
+      const similarResponse = await axios.post(
+        "http://127.0.0.1:8000/similar",
+        {
+          current: currentSummary,
+          past: pastSummaries,
+        },
       );
-      const existingCols = new Set((colsRes.rows || []).map((r) => r.column_name));
-
-      const candidates = [
-        "created_at",
-        "createdAt",
-        "created_on",
-        "createdOn",
-        "timestamp",
-        "createdTime",
-        "id",
-      ];
-      const orderCol = candidates.find((c) => existingCols.has(c)) ?? null;
-
-      const orderBySql = orderCol
-        ? `ORDER BY "${orderCol}" DESC`
-        : "";
-
-      const pastRes = await pool.query(
-        `SELECT context->>'errorSummary' AS error_summary
-         FROM sessions
-         WHERE context IS NOT NULL
-         AND context->>'errorSummary' IS NOT NULL
-         AND context->>'errorSummary' <> ''
-         ${orderBySql}
-         LIMIT 10`
-      );
-
-      const pastSummaries = (pastRes.rows || [])
-        .map((r) => r.error_summary)
-        .filter((s) => typeof s === "string" && s.trim().length > 0);
-
-      const currentSummary = context?.errorSummary ?? "";
-
-      const similarResponse = await axios.post("http://127.0.0.1:8000/similar", {
-        current: currentSummary,
-        past: pastSummaries,
-      });
 
       similarIssues = {
         mostSimilar: similarResponse.data?.mostSimilar ?? null,
-        score: typeof similarResponse.data?.score === "number" ? similarResponse.data.score : 0,
+        score:
+          typeof similarResponse.data?.score === "number"
+            ? similarResponse.data.score
+            : 0,
         matchType:
           typeof similarResponse.data?.matchType === "string"
             ? similarResponse.data.matchType
             : "Weak match",
       };
-    } catch (similarErr) {
-      console.log("Similarity step failed:", similarErr.message);
+    } catch (err) {
+      console.log("Similarity error:", err.message);
     }
 
+    if(similarIssues.score >= SIMILARITY_THRESHOLD){
+      const matchedRow = pastRows.find(
+        (r) => r.error_summary === similarIssues.mostSimilar
+      );
+
+      if(matchedRow && matchedRow.aiAnalysis){
+        const reusedAnalysis = 
+        typeof matchedRow.aiAnalysis === "object"
+        ? matchedRow.aiAnalysis
+        : JSON.parse(matchedRow.aiAnalysis);
+
+        return res.json({
+          parsed,
+          context,
+          analysis: reusedAnalysis,
+          similarIssues,
+          reused: true,
+        });
+      }
+    }
+
+    const aiAnalysis = await analyzeWithAI(context);
+
+    const codeDiff = generateDiff(
+      context?.code ?? null,
+      aiAnalysis?.improvedCode ?? null,
+    );
+
     const finalConfidence = calculateConfidence(
-      aiAnalysis?.confidence ?? 0, 
-      similarIssues?.score ?? 0, 
+      aiAnalysis?.confidence ?? 0,
+      similarIssues?.score ?? 0,
       context?.category ?? "UNKNOWN",
       context?.logs ?? "",
       context?.code ?? "",
@@ -116,10 +138,14 @@ app.post("/analyze", async (req, res) => {
       improvedCode: aiAnalysis?.improvedCode ?? "",
       confidence: finalConfidence,
       severity: severity,
-      reasoningSteps: Array.isArray(aiAnalysis?.reasoningSteps) ? aiAnalysis.reasoningSteps : [],
-      debugHints: Array.isArray(aiAnalysis?.debugHints) ? aiAnalysis.debugHints : [],
+      reasoningSteps: Array.isArray(aiAnalysis?.reasoningSteps)
+        ? aiAnalysis.reasoningSteps
+        : [],
+      debugHints: Array.isArray(aiAnalysis?.debugHints)
+        ? aiAnalysis.debugHints
+        : [],
       codeDiff: Array.isArray(codeDiff) ? codeDiff : [],
-    }
+    };
 
     await pool.query(
       `INSERT INTO sessions ("input", "parsed", "context", "aiAnalysis")
@@ -129,7 +155,7 @@ app.post("/analyze", async (req, res) => {
         JSON.stringify(parsed ?? null),
         JSON.stringify(context ?? null),
         JSON.stringify(analysis ?? null),
-      ]
+      ],
     );
 
     res.json({
@@ -137,6 +163,7 @@ app.post("/analyze", async (req, res) => {
       context,
       analysis,
       similarIssues,
+      reused: false,
     });
   } catch (error) {
     res.status(500).json({
