@@ -27,7 +27,7 @@ TASK:
 2. Suggest fix
 3. Provide improved code
 4. Give confidence score (0-100)
-5. Explain reasoning steps clearly
+5. Explain reasoning steps clearly (put all detailed explanation here)
 
 IMPORTANT:
 
@@ -37,6 +37,7 @@ IMPORTANT:
 * Do not assume missing information
 * Base answer only on given input
 * If logs/code are empty, mention limitation
+* Keep rootCause concise (1–2 lines max). Do not include detailed explanation in rootCause.
 
 FORMAT:
 {
