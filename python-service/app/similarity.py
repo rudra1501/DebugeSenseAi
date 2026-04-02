@@ -34,25 +34,41 @@ def cosine_similarity(vec1, vec2):
     return dot / (norm1 * norm2)
 
 
+def _match_type(score: float) -> str:
+    if score > 0.95:
+        return "Exact match"
+    if score > 0.75:
+        return "Highly similar"
+    return "Weak match"
+
+
 def find_similar_issue(current_text, past_texts):
     """
     Compare current issue text against past issues and return the most similar.
 
     Returns:
       {
-        "index": <int or null>,
-        "text": <most similar past text or null>,
-        "score": <float>
+        "mostSimilar": <str or None>,
+        "score": <float, 2 decimal places>,
+        "matchType": "Exact match" | "Highly similar" | "Weak match"
       }
     """
     current_vec = text_to_vector(current_text)
 
-    best = {"index": None, "text": None, "score": 0.0}
+    best_text = None
+    best_raw_score = 0.0
 
-    for idx, past in enumerate(past_texts or []):
+    for past in past_texts or []:
         past_vec = text_to_vector(past)
         score = cosine_similarity(current_vec, past_vec)
-        if score > best["score"]:
-            best = {"index": idx, "text": past, "score": float(score)}
+        if score > best_raw_score:
+            best_raw_score = float(score)
+            best_text = past
 
-    return best
+    rounded = round(best_raw_score, 2)
+
+    return {
+        "mostSimilar": best_text,
+        "score": rounded,
+        "matchType": _match_type(best_raw_score),
+    }

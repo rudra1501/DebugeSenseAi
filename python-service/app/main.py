@@ -35,11 +35,7 @@ def parse(payload: ParseRequest):
 
 @app.post("/similar")
 def similar(payload: SimilarRequest):
-    result = find_similar_issue(payload.current, payload.past)
-    return {
-        "mostSimilar": result.get("text"),
-        "score": result.get("score", 0.0),
-    }
+    return find_similar_issue(payload.current, payload.past)
 
 
 if __name__ == "__main__":

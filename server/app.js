@@ -40,7 +40,11 @@ app.post("/analyze", async (req, res) => {
       code: req.body?.code ?? context?.code ?? null,
     };
 
-    let similarIssues = { mostSimilar: null, score: 0 };
+    let similarIssues = {
+      mostSimilar: null,
+      score: 0,
+      matchType: "Weak match",
+    };
     try {
       const colsRes = await pool.query(
         `SELECT column_name
@@ -89,6 +93,10 @@ app.post("/analyze", async (req, res) => {
       similarIssues = {
         mostSimilar: similarResponse.data?.mostSimilar ?? null,
         score: typeof similarResponse.data?.score === "number" ? similarResponse.data.score : 0,
+        matchType:
+          typeof similarResponse.data?.matchType === "string"
+            ? similarResponse.data.matchType
+            : "Weak match",
       };
     } catch (similarErr) {
       console.log("Similarity step failed:", similarErr.message);
