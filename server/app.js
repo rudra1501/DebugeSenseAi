@@ -117,6 +117,7 @@ app.post("/analyze", async (req, res) => {
       confidence: finalConfidence,
       severity: severity,
       reasoningSteps: Array.isArray(aiAnalysis?.reasoningSteps) ? aiAnalysis.reasoningSteps : [],
+      debugHints: Array.isArray(aiAnalysis?.debugHints) ? aiAnalysis.debugHints : [],
       codeDiff: Array.isArray(codeDiff) ? codeDiff : [],
     }
 

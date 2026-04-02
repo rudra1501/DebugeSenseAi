@@ -50,6 +50,10 @@ FORMAT:
 "reasoningSteps": [
   "step 1...",
   "step 2..."
+],
+"debugHints": [
+  "step 1...",
+  "step 2..."
 ]
 }`;
 
