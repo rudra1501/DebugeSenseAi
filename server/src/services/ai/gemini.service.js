@@ -24,8 +24,8 @@ Code: ${code}
 TASK:
 
 1. Identify root cause
-2. Suggest fix
-3. Provide improved code
+2. Suggest fix (only one best fix, no alternatives)
+3. Provide improved code for that same single fix (no alternatives)
 4. Give confidence score (0-100)
 5. Explain reasoning steps clearly (put all detailed explanation here)
 
@@ -38,6 +38,8 @@ IMPORTANT:
 * Base answer only on given input
 * If logs/code are empty, mention limitation
 * Keep rootCause concise (1–2 lines max). Do not include detailed explanation in rootCause.
+* Provide only one best fix. Do not include alternative approaches or options.
+* improvedCode must be ONLY the final code text (no markdown/backticks, no prose).
 
 FORMAT:
 {
