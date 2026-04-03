@@ -1,15 +1,16 @@
 import { useState } from "react";
 import axios from "axios";
 
-export default function InputPanel({ onResult }) {
+export default function InputPanel({ onResult, loading, setLoading}) {
   const [stackTrace, setStackTrace] = useState("");
   const [logs, setLogs] = useState("");
   const [code, setCode] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const handleSubmit = async () => {
     try {
       setLoading(true);
+      setErrorMsg("");
 
       const response = await axios.post("http://localhost:5000/analyze", {
         stackTrace,
@@ -17,9 +18,23 @@ export default function InputPanel({ onResult }) {
         code,
       });
 
+      if (response.data?.error) {
+        setErrorMsg(response.data.error);
+        onResult && onResult(null);
+        return;
+      }
+
       onResult && onResult(response.data);
     } catch (error) {
       console.error("API Error:", error.message);
+
+      if (error.response?.data?.error) {
+        setErrorMsg(error.response.data.error);
+      } else {
+        setErrorMsg("Something went wrong. Please try again.");
+      }
+
+      onResult && onResult(null);
     } finally {
       setLoading(false);
     }
@@ -36,35 +51,45 @@ export default function InputPanel({ onResult }) {
           </label>
           <textarea
             value={stackTrace}
-            onChange={(e) => setStackTrace(e.target.value)}
+            onChange={(e) => {
+              setStackTrace(e.target.value)
+              setErrorMsg("");
+            }}
             className="w-full h-24 p-2 bg-gray-800 text-white rounded border border-gray-700 focus:outline-none"
             placeholder="Paste stack trace..."
           />
         </div>
 
         <div>
-          <label className="block text-sm text-gray-400 mb-1">
-            Logs
-          </label>
+          <label className="block text-sm text-gray-400 mb-1">Logs</label>
           <textarea
             value={logs}
-            onChange={(e) => setLogs(e.target.value)}
+            onChange={(e) => {
+              setLogs(e.target.value)
+              setErrorMsg("");
+            }}
             className="w-full h-20 p-2 bg-gray-800 text-white rounded border border-gray-700 focus:outline-none"
             placeholder="Paste logs..."
           />
         </div>
 
         <div>
-          <label className="block text-sm text-gray-400 mb-1">
-            Code
-          </label>
+          <label className="block text-sm text-gray-400 mb-1">Code</label>
           <textarea
             value={code}
-            onChange={(e) => setCode(e.target.value)}
+            onChange={(e) => {
+              setCode(e.target.value)
+              setErrorMsg("");
+            }}
             className="w-full h-24 p-2 bg-gray-800 text-white rounded border border-gray-700 focus:outline-none"
             placeholder="Paste code..."
           />
         </div>
+        {errorMsg && (
+          <div className="p-3 bg-red-500/10 border border-red-500 text-red-400 text-sm rounded">
+            ⚠️ {errorMsg}
+          </div>
+        )}
 
         <button
           onClick={handleSubmit}
