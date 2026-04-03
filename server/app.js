@@ -20,11 +20,47 @@ app.use(express.json());
 
 app.post("/analyze", async (req, res) => {
   try {
+    let { stackTrace = "", logs = "", code = "" } = req.body || {};
+
+    stackTrace = typeof stackTrace === "string" ? stackTrace.trim() : "";
+    logs = typeof logs === "string" ? logs.trim() : "";
+    code = typeof code === "string" ? code.trim() : "";
+
+    const combinedInput = `${stackTrace} ${logs} ${code}`.trim();
+
+    if (!combinedInput) {
+      return res.status(400).json({
+        error:
+          "No valid input provided. Please enter stack trace, logs, or code.",
+      });
+    }
+
+    if (combinedInput.length < 8) {
+      return res.status(400).json({
+        error: "Input too short to analyze.",
+      });
+    }
     const parseResponse = await axios.post(
       "http://127.0.0.1:8000/parse",
       req.body,
     );
     const { parsed, context } = parseResponse.data || {};
+
+    const hasRealError =
+      parsed?.type !== null ||
+      parsed?.message !== null ||
+      context?.category !== "UNKNOWN";
+
+    if (!hasRealError) {
+      return res.status(400).json({
+        parsed,
+        context,
+        error:
+          "Input does not contain a recognizable error pattern. Please provide a valid stack trace or logs.",
+        analysis: null,
+        similarIssues: null,
+      });
+    }
 
     const severity = detectSeverity(
       context?.category ?? "UNKNOWN",
@@ -96,16 +132,16 @@ app.post("/analyze", async (req, res) => {
       console.log("Similarity error:", err.message);
     }
 
-    if(similarIssues.score >= SIMILARITY_THRESHOLD){
+    if (similarIssues.score >= SIMILARITY_THRESHOLD) {
       const matchedRow = pastRows.find(
-        (r) => r.error_summary === similarIssues.mostSimilar
+        (r) => r.error_summary === similarIssues.mostSimilar,
       );
 
-      if(matchedRow && matchedRow.aiAnalysis){
-        const reusedAnalysis = 
-        typeof matchedRow.aiAnalysis === "object"
-        ? matchedRow.aiAnalysis
-        : JSON.parse(matchedRow.aiAnalysis);
+      if (matchedRow && matchedRow.aiAnalysis) {
+        const reusedAnalysis =
+          typeof matchedRow.aiAnalysis === "object"
+            ? matchedRow.aiAnalysis
+            : JSON.parse(matchedRow.aiAnalysis);
 
         return res.json({
           parsed,
