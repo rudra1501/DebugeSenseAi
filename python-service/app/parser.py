@@ -1,5 +1,5 @@
 import re
-import classifier
+from app import classifier
 
 def parse_error(data):
     stack_trace = str(data.get("stackTrace", "") or "")
