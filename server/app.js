@@ -9,11 +9,11 @@ const { generateDiff } = require("./src/utils/codeDiff");
 const { detectSeverity } = require("./src/utils/severity");
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 const dbUrl = process.env.DATABASE_URL;
 const pool = dbUrl ? new Pool({ connectionString: dbUrl }) : null;
-const SIMILARITY_THRESHOLD = 0.95;
+const SIMILARITY_THRESHOLD = process.env.SIMILARITY_THRESHOLD || 0.95;
 
 app.use(cors());
 app.use(express.json());
