@@ -102,37 +102,42 @@ app.post("/analyze", async (req, res) => {
 
     const currentSummary = context?.errorSummary ?? "";
 
-    let similarIssues = {
-      mostSimilar: null,
-      score: 0,
-      matchType: "Weak match",
-    };
+    let similarIssues = null;
 
-    try {
-      const similarResponse = await axios.post(
-        "http://127.0.0.1:8000/similar",
-        {
-          current: currentSummary,
-          past: pastSummaries,
-        },
-      );
+    if (
+      currentSummary &&
+      currentSummary !== "Unknown error" &&
+      currentSummary.length > 10
+    ) {
+      try {
+        const similarResponse = await axios.post(
+          "http://127.0.0.1:8000/similar",
+          {
+            current: currentSummary,
+            past: pastSummaries,
+          },
+        );
 
-      similarIssues = {
-        mostSimilar: similarResponse.data?.mostSimilar ?? null,
-        score:
-          typeof similarResponse.data?.score === "number"
-            ? similarResponse.data.score
-            : 0,
-        matchType:
-          typeof similarResponse.data?.matchType === "string"
-            ? similarResponse.data.matchType
-            : "Weak match",
-      };
-    } catch (err) {
-      console.log("Similarity error:", err.message);
+        similarIssues = {
+          mostSimilar: similarResponse.data?.mostSimilar ?? null,
+          score:
+            typeof similarResponse.data?.score === "number"
+              ? similarResponse.data.score
+              : 0,
+          matchType:
+            typeof similarResponse.data?.matchType === "string"
+              ? similarResponse.data.matchType
+              : "Weak match",
+        };
+      } catch (err) {
+        console.log("Similarity error:", err.message);
+      }
     }
 
-    if (similarIssues.score >= SIMILARITY_THRESHOLD) {
+    if (similarIssues && 
+      similarIssues.score >= SIMILARITY_THRESHOLD &&
+      similarIssues.matchType === "Exact match"
+    ) {
       const matchedRow = pastRows.find(
         (r) => r.error_summary === similarIssues.mostSimilar,
       );
