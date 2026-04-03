@@ -13,7 +13,7 @@ const PORT = 5000;
 
 const dbUrl = process.env.DATABASE_URL;
 const pool = dbUrl ? new Pool({ connectionString: dbUrl }) : null;
-const SIMILARITY_THRESHOLD = 0.9;
+const SIMILARITY_THRESHOLD = 0.95;
 
 app.use(cors());
 app.use(express.json());
@@ -134,9 +134,21 @@ app.post("/analyze", async (req, res) => {
       }
     }
 
-    if (similarIssues && 
+    const matchedSummary = similarIssues?.mostSimilar || "";
+
+    const isExactTextMatch = currentSummary === matchedSummary;
+
+    const isTokenSimilar =
+      matchedSummary &&
+      Math.abs(
+        currentSummary.split(" ").length - matchedSummary.split(" ").length,
+      ) < 2;
+
+    if (
+      similarIssues &&
       similarIssues.score >= SIMILARITY_THRESHOLD &&
-      similarIssues.matchType === "Exact match"
+      similarIssues.matchType === "Exact match" &&
+      (isExactTextMatch || isTokenSimilar)
     ) {
       const matchedRow = pastRows.find(
         (r) => r.error_summary === similarIssues.mostSimilar,
