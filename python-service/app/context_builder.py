@@ -39,8 +39,12 @@ def build_context(parsed_data, raw_input):
 
     error_type_str = str(error_type) if error_type else ""
     message_str = str(message) if message else ""
+    keys = parsed_data.get("keys") if isinstance(parsed_data, dict) else None
 
-    if error_type_str and message_str:
+    if error_type_str == "KeyError" and keys:
+        sorted_keys = sorted(keys)
+        error_summary = f"KeyError: missing keys [{', '.join(sorted_keys)}]"
+    elif error_type_str and message_str:
         error_summary = f"{error_type_str}: {message_str}"
     elif message_str:
         error_summary = message_str

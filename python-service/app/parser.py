@@ -38,6 +38,13 @@ def parse_error(data):
         )
         if type_message_match:
             error_message = clean_error_message(type_message_match.group(1))
+        
+    keys = []
+
+    if error_type == "KeyError":
+        key_matches = re.findall(r"KeyError:\s*['\"]([^'\"]+)['\"]", text)
+        if key_matches:
+            keys = list(set(key_matches)) 
 
     js_file_line_match = re.search(
         r"(?:\(|\s)([^()\s]+?\.[A-Za-z0-9]+):(\d+)(?::\d+)?\)?",
@@ -86,6 +93,7 @@ def parse_error(data):
         "message": error_message,
         "file": file_name,
         "line": line_number,
+        "keys": keys if keys else None,
         "raw": data,
     }
 
