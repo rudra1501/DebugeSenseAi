@@ -12,7 +12,7 @@ export default function InputPanel({ onResult, loading, setLoading}) {
       setLoading(true);
       setErrorMsg("");
 
-      const response = await axios.post("http://localhost:5000/analyze", {
+      const response = await axios.post("https://debugesenseai.onrender.com/analyze", {
         stackTrace,
         logs,
         code,

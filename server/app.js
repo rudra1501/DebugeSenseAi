@@ -15,7 +15,9 @@ const dbUrl = process.env.DATABASE_URL;
 const pool = dbUrl ? new Pool({ connectionString: dbUrl }) : null;
 const SIMILARITY_THRESHOLD = process.env.SIMILARITY_THRESHOLD || 0.95;
 
-app.use(cors());
+app.use(cors({
+  origin: "*",
+}));
 app.use(express.json());
 
 app.post("/analyze", async (req, res) => {
@@ -41,7 +43,7 @@ app.post("/analyze", async (req, res) => {
       });
     }
     const parseResponse = await axios.post(
-      "http://127.0.0.1:8000/parse",
+      "https://debugesenseai-python.onrender.com/parse",
       req.body,
     );
     const { parsed, context } = parseResponse.data || {};
@@ -111,7 +113,7 @@ app.post("/analyze", async (req, res) => {
     ) {
       try {
         const similarResponse = await axios.post(
-          "http://127.0.0.1:8000/similar",
+          "https://debugesenseai-python.onrender.com/similar",
           {
             current: currentSummary,
             past: pastSummaries,
