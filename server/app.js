@@ -12,8 +12,14 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 const dbUrl = process.env.DATABASE_URL;
-const pool = dbUrl ? new Pool({ connectionString: dbUrl }) : null;
-const SIMILARITY_THRESHOLD = process.env.SIMILARITY_THRESHOLD || 0.95;
+const pool = dbUrl
+  ? new Pool({
+      connectionString: dbUrl,
+      ssl: {
+        rejectUnauthorized: false,
+      },
+    })
+  : null;const SIMILARITY_THRESHOLD = process.env.SIMILARITY_THRESHOLD || 0.95;
 const PARSE_PROD = process.env.PARSE_PYTHON_PROD;
 const SIMILAR_PROD = process.env.SIMILAR_PYTHON_PROD;
 const PARSE_DEV = process.env.PARSE_PYTHON_DEV;
