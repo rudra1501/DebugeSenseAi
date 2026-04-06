@@ -225,6 +225,8 @@ app.post("/analyze", async (req, res) => {
       reused: false,
     });
   } catch (error) {
+    console.log("error:", error);
+    
     res.status(500).json({
       error: "Failed to analyze request",
       details: error.message,
