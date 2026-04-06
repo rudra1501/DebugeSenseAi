@@ -7,6 +7,10 @@ from app.similarity import find_similar_issue
 
 app = FastAPI()
 
+@app.get("/")
+def root():
+    return {"status": "ok", "service": "DebugSenseAI Python API"}
+
 
 class ParseRequest(BaseModel):
     stackTrace: str
