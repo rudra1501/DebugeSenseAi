@@ -226,9 +226,21 @@ app.post("/analyze", async (req, res) => {
       reused: false,
     });
   } catch (error) {
+    console.error("Backend Error:", error.response?.data || error.message);
+    if (error.response) {
+    return res.status(error.response.status || 500).json({
+      error:
+        error.response.data?.error?.message ||
+        "External service failed. Please try again.",
+    });
+  }
+  if (error.code === "ECONNABORTED") {
+    return res.status(504).json({
+      error: "Request timed out. Please try again.",
+    });
+  }
     res.status(500).json({
       error: "Failed to analyze request",
-      details: error.message,
     });
   }
 });
