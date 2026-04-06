@@ -19,7 +19,8 @@ const pool = dbUrl
         rejectUnauthorized: false,
       },
     })
-  : null;const SIMILARITY_THRESHOLD = process.env.SIMILARITY_THRESHOLD || 0.95;
+  : null;
+const SIMILARITY_THRESHOLD = Number(process.env.SIMILARITY_THRESHOLD) || 0.95;
 const PARSE_PROD = process.env.PARSE_PYTHON_PROD;
 const SIMILAR_PROD = process.env.SIMILAR_PYTHON_PROD;
 const PARSE_DEV = process.env.PARSE_PYTHON_DEV;
@@ -231,11 +232,21 @@ app.post("/analyze", async (req, res) => {
       reused: false,
     });
   } catch (error) {
-    console.log("error:", error);
-    
+    console.error("Backend Error:", error.response?.data || error.message);
+    if (error.response) {
+    return res.status(error.response.status || 500).json({
+      error:
+        error.response.data?.error?.message ||
+        "External service failed. Please try again.",
+    });
+  }
+  if (error.code === "ECONNABORTED") {
+    return res.status(504).json({
+      error: "Request timed out. Please try again.",
+    });
+  }
     res.status(500).json({
       error: "Failed to analyze request",
-      details: error.message,
     });
   }
 });

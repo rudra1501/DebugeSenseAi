@@ -10,6 +10,26 @@ export default function InputPanel({ onResult, loading, setLoading}) {
   const ANALYZE_PROD = import.meta.env.VITE_ANALYZE_PROD;
 
   const handleSubmit = async () => {
+    if (loading) return;
+
+    const trimmedStack = stackTrace.trim();
+    const trimmedLogs = logs.trim();
+    const trimmedCode = code.trim();
+
+    if (!trimmedStack && !trimmedLogs && !trimmedCode) {
+      setErrorMsg(
+        "Please provide at least one input (stack trace, logs, or code).",
+      );
+      return;
+    }
+
+    const combinedInput =
+      `${trimmedStack} ${trimmedLogs} ${trimmedCode}`.trim();
+
+    if (combinedInput.length < 8) {
+      setErrorMsg("Input too short to analyze.");
+      return;
+    }
     try {
       setLoading(true);
       setErrorMsg("");
@@ -28,12 +48,36 @@ export default function InputPanel({ onResult, loading, setLoading}) {
 
       onResult && onResult(response.data);
     } catch (error) {
-      console.error("API Error:", error.message);
+      console.error("API Error:", error);
 
-      if (error.response?.data?.error) {
-        setErrorMsg(error.response.data.error);
-      } else {
-        setErrorMsg("Something went wrong. Please try again.");
+      if (error.response) {
+        const status = error.response.status;
+        const message = error.response.data?.error;
+
+        if (status === 503) {
+          setErrorMsg(
+            "⚠️ AI service is busy right now. Please try again in a few seconds.",
+          );
+        }
+        else if (status === 400) {
+          setErrorMsg(message || "Invalid input. Please check your data.");
+        }
+        else if (status >= 500) {
+          setErrorMsg(message || "Server error occurred. Please try again.");
+        }
+        else {
+          setErrorMsg(message || "Request failed. Please try again.");
+        }
+      }
+
+      else if (error.request) {
+        setErrorMsg(
+          "🚫 Server is not responding. Please check your connection.",
+        );
+      }
+
+      else {
+        setErrorMsg("Unexpected error occurred.");
       }
 
       onResult && onResult(null);
