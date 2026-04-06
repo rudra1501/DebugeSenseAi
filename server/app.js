@@ -14,6 +14,10 @@ const PORT = process.env.PORT || 5000;
 const dbUrl = process.env.DATABASE_URL;
 const pool = dbUrl ? new Pool({ connectionString: dbUrl }) : null;
 const SIMILARITY_THRESHOLD = process.env.SIMILARITY_THRESHOLD || 0.95;
+const PARSE_PROD = process.env.PARSE_PYTHON_PROD;
+const SIMILAR_PROD = process.env.SIMILAR_PYTHON_PROD;
+const PARSE_DEV = process.env.PARSE_PYTHON_DEV;
+const SIMILAR_DEV = process.env.SIMILAR_PYTHON_DEV;
 
 app.use(cors({
   origin: "*",
@@ -43,7 +47,7 @@ app.post("/analyze", async (req, res) => {
       });
     }
     const parseResponse = await axios.post(
-      "https://debugesenseai-python.onrender.com/parse",
+      PARSE_PROD,
       req.body,
     );
     const { parsed, context } = parseResponse.data || {};
@@ -113,7 +117,7 @@ app.post("/analyze", async (req, res) => {
     ) {
       try {
         const similarResponse = await axios.post(
-          "https://debugesenseai-python.onrender.com/similar",
+          SIMILAR_PROD,
           {
             current: currentSummary,
             past: pastSummaries,

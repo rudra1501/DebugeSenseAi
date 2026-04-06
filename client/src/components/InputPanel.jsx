@@ -6,13 +6,15 @@ export default function InputPanel({ onResult, loading, setLoading}) {
   const [logs, setLogs] = useState("");
   const [code, setCode] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const ANALYZE_DEV = import.meta.env.VITE_ANALYZE_DEV;
+  const ANALYZE_PROD = import.meta.env.VITE_ANALYZE_PROD;
 
   const handleSubmit = async () => {
     try {
       setLoading(true);
       setErrorMsg("");
 
-      const response = await axios.post("https://debugesenseai.onrender.com/analyze", {
+      const response = await axios.post(ANALYZE_PROD, {
         stackTrace,
         logs,
         code,
