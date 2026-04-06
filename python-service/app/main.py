@@ -1,9 +1,12 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-from app.parser import parse_error
-from app.context_builder import build_context
-from app.similarity import find_similar_issue
+# from app.parser import parse_error
+# from app.context_builder import build_context
+# from app.similarity import find_similar_issue
+from parser import parse_error
+from context_builder import build_context
+from similarity import find_similar_issue
 
 app = FastAPI()
 
@@ -37,4 +40,7 @@ def parse(payload: ParseRequest):
 def similar(payload: SimilarRequest):
     return find_similar_issue(payload.current, payload.past)
 
+if __name__ == "__main__":
+    import uvicorn
 
+    uvicorn.run(app, host="0.0.0.0", port=8000)
