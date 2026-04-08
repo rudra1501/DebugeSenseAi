@@ -72,7 +72,7 @@ export default function InputPanel({ onResult, loading, setLoading}) {
 
       else if (error.request) {
         setErrorMsg(
-          "🚫 Server is not responding. Please check your connection.",
+          "Server is not responding. Please check your connection.",
         );
       }
 
