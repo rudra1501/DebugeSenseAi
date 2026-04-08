@@ -56,7 +56,7 @@ export default function InputPanel({ onResult, loading, setLoading }) {
 
         if (status === 503) {
           setErrorMsg(
-            "⚠️ AI service is busy right now. Please try again in a few seconds.",
+            "AI service is busy right now. Please try again in a few seconds.",
           );
         }
         else if (status === 400) {
